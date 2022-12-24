@@ -22,24 +22,18 @@ package org.apache.iotdb.confignode.procedure.entity;
 import org.apache.iotdb.confignode.procedure.env.TestProcEnv;
 import org.apache.iotdb.confignode.procedure.exception.ProcedureException;
 import org.apache.iotdb.confignode.procedure.impl.statemachine.StateMachineProcedure;
+import org.apache.iotdb.confignode.procedure.state.ProcedureLockState;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SimpleSTMProcedure
-    extends StateMachineProcedure<TestProcEnv, SimpleSTMProcedure.TestState> {
+public class SecondStateMachineProcedure extends StateMachineProcedure<TestProcEnv, TestState> {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(SimpleSTMProcedure.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(SecondStateMachineProcedure.class);
 
   public int throwAtIndex = -1;
-
-  public enum TestState {
-    STEP_1,
-    STEP_2,
-    STEP_3
-  }
 
   @Override
   protected Flow executeFromState(TestProcEnv testProcEnv, TestState testState) {
@@ -47,29 +41,25 @@ public class SimpleSTMProcedure
     try {
       switch (testState) {
         case STEP_1:
-          LOGGER.info("Execute STM Procedure STEP_1");
+          LOGGER.info("Execute SecondStateMachineProcedure {} STEP_1", getProcId());
           acc.getAndAdd(1);
           setNextState(TestState.STEP_2);
           break;
         case STEP_2:
-          LOGGER.info("Execute STM Procedure STEP_2");
-          for (int i = 0; i < 10; i++) {
-            IncProcedure child = new IncProcedure();
-            if (i == throwAtIndex) {
-              child.throwEx = true;
-            }
-            addChildProcedure(child);
+          LOGGER.info("Execute SecondStateMachineProcedure {} STEP_2", getProcId());
+          if (throwAtIndex > 0) {
+            throw new RuntimeException("throw EXCEPTION in SecondStateMachineProcedure");
           }
           setNextState(TestState.STEP_3);
           break;
         case STEP_3:
-          LOGGER.info("Execute STM Procedure STEP_3");
+          LOGGER.info("Execute SecondStateMachineProcedure {} STEP_3", getProcId());
           acc.getAndAdd(-1);
           return Flow.NO_MORE_STATE;
       }
     } catch (Exception e) {
       if (isRollbackSupported(testState)) {
-        setFailure("proc failed", new ProcedureException(e));
+        setFailure("SecondStateMachineProcedure failed", new ProcedureException(e));
       }
     }
     return Flow.HAS_MORE_STATE;
@@ -82,7 +72,10 @@ public class SimpleSTMProcedure
 
   @Override
   protected void rollbackState(TestProcEnv testProcEnv, TestState testState) {
-    LOGGER.info("Execute rollback in SimpleSTMProcedure, testState: {}", testState);
+    LOGGER.info(
+        "Execute rollback in SecondStateMachineProcedure {}, testState: {}",
+        getProcId(),
+        testState);
   }
 
   @Override
@@ -98,5 +91,35 @@ public class SimpleSTMProcedure
   @Override
   protected TestState getInitialState() {
     return TestState.STEP_1;
+  }
+
+  @Override
+  protected ProcedureLockState acquireLock(TestProcEnv testProcEnv) {
+    testProcEnv.getEnvLock().lock();
+    try {
+      if (testProcEnv.getExecuteLock().tryLock(this)) {
+        LOGGER.info("Second {} acquire lock.", getProcId());
+        return ProcedureLockState.LOCK_ACQUIRED;
+      }
+      testProcEnv.getExecuteLock().waitProcedure(this);
+
+      LOGGER.info("Second {} wait for lock.", getProcId());
+      return ProcedureLockState.LOCK_EVENT_WAIT;
+    } finally {
+      testProcEnv.getEnvLock().unlock();
+    }
+  }
+
+  @Override
+  protected void releaseLock(TestProcEnv testProcEnv) {
+    testProcEnv.getEnvLock().lock();
+    try {
+      LOGGER.info("Second {} release lock.", getProcId());
+      if (testProcEnv.getExecuteLock().releaseLock(this)) {
+        testProcEnv.getExecuteLock().wakeWaitingProcedures(testProcEnv.getScheduler());
+      }
+    } finally {
+      testProcEnv.getEnvLock().unlock();
+    }
   }
 }

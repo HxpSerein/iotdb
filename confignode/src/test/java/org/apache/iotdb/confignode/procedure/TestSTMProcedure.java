@@ -45,18 +45,18 @@ public class TestSTMProcedure extends TestProcedureBase {
   }
 
   @Test
-  public void testRolledBackProcedure() {
+  public void testRolledBackProcedure() throws InterruptedException {
     SimpleSTMProcedure stmProcedure = new SimpleSTMProcedure();
-    stmProcedure.throwAtIndex = 4;
+    stmProcedure.throwAtIndex = 3;
     long procId = this.procExecutor.submitProcedure(stmProcedure);
     ProcedureTestUtil.waitForProcedure(this.procExecutor, procId);
     TestProcEnv env = this.getEnv();
     AtomicInteger acc = env.getAcc();
-    int success = env.successCount.get();
-    int rolledback = env.rolledBackCount.get();
+    int successCount = env.successCount.get();
+    int rolledBackCount = env.rolledBackCount.get();
     LOGGER.info("all count: " + acc.get());
-    LOGGER.info("success count: " + success);
-    LOGGER.info("rolledback count: " + rolledback);
-    Assert.assertEquals(1 + success - rolledback, acc.get());
+    LOGGER.info("success count: " + successCount);
+    LOGGER.info("rolledback count: " + rolledBackCount);
+    Assert.assertEquals(1 + successCount - rolledBackCount, acc.get());
   }
 }

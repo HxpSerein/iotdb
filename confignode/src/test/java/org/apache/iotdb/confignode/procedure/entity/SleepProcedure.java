@@ -25,14 +25,20 @@ import org.apache.iotdb.confignode.procedure.exception.ProcedureSuspendedExcepti
 import org.apache.iotdb.confignode.procedure.exception.ProcedureYieldException;
 import org.apache.iotdb.confignode.procedure.util.ProcedureTestUtil;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 
 public class SleepProcedure extends Procedure<TestProcEnv> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(Procedure.class);
+
   @Override
   protected Procedure<TestProcEnv>[] execute(TestProcEnv testProcEnv)
       throws ProcedureYieldException, ProcedureSuspendedException, InterruptedException {
-    System.out.println("Procedure is sleeping.");
+    LOGGER.info("SleepProcedure is sleeping.");
     ProcedureTestUtil.sleepWithoutInterrupt(2000);
     return null;
   }

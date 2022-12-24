@@ -19,6 +19,7 @@
 
 package org.apache.iotdb.confignode.procedure.env;
 
+import org.apache.iotdb.confignode.procedure.scheduler.LockQueue;
 import org.apache.iotdb.confignode.procedure.scheduler.ProcedureScheduler;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,6 +40,8 @@ public class TestProcEnv {
 
   public StringBuilder lockAcquireSeq = new StringBuilder();
 
+  private final LockQueue procedureExecuteLock = new LockQueue();
+
   public AtomicInteger getAcc() {
     return acc;
   }
@@ -49,6 +52,10 @@ public class TestProcEnv {
 
   public ReentrantLock getEnvLock() {
     return envLock;
+  }
+
+  public LockQueue getExecuteLock() {
+    return this.procedureExecuteLock;
   }
 
   public void setScheduler(ProcedureScheduler scheduler) {
