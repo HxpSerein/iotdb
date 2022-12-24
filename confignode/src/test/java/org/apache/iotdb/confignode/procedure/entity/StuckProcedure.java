@@ -52,7 +52,7 @@ public class StuckProcedure extends Procedure<TestProcEnv> {
   }
 
   @Override
-  protected void rollback(TestProcEnv testProcEnv) throws IOException, InterruptedException {}
+  protected void rollback(TestProcEnv testProcEnv) {}
 
   @Override
   protected boolean abort(TestProcEnv testProcEnv) {

@@ -25,10 +25,14 @@ import org.apache.iotdb.confignode.procedure.exception.ProcedureSuspendedExcepti
 import org.apache.iotdb.confignode.procedure.exception.ProcedureYieldException;
 import org.apache.iotdb.confignode.procedure.scheduler.SimpleProcedureScheduler;
 import org.apache.iotdb.confignode.procedure.state.ProcedureLockState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class SimpleLockProcedure extends Procedure<TestProcEnv> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleLockProcedure.class);
 
   private String procName;
 
@@ -46,7 +50,7 @@ public class SimpleLockProcedure extends Procedure<TestProcEnv> {
   }
 
   @Override
-  protected void rollback(TestProcEnv testProcEnv) throws IOException, InterruptedException {}
+  protected void rollback(TestProcEnv testProcEnv) {}
 
   @Override
   protected boolean abort(TestProcEnv testProcEnv) {
@@ -57,19 +61,19 @@ public class SimpleLockProcedure extends Procedure<TestProcEnv> {
   protected ProcedureLockState acquireLock(TestProcEnv testProcEnv) {
     if (testProcEnv.getEnvLock().tryLock()) {
       testProcEnv.lockAcquireSeq.append(procName);
-      System.out.println(procName + " acquired lock.");
+      LOGGER.info(procName + " acquired lock.");
 
       return ProcedureLockState.LOCK_ACQUIRED;
     }
     SimpleProcedureScheduler scheduler = (SimpleProcedureScheduler) testProcEnv.getScheduler();
     scheduler.addWaiting(this);
-    System.out.println(procName + " wait for lock.");
+    LOGGER.info(procName + " wait for lock.");
     return ProcedureLockState.LOCK_EVENT_WAIT;
   }
 
   @Override
   protected void releaseLock(TestProcEnv testProcEnv) {
-    System.out.println(procName + " release lock.");
+    LOGGER.info(procName + " release lock.");
     testProcEnv.getEnvLock().unlock();
     SimpleProcedureScheduler scheduler = (SimpleProcedureScheduler) testProcEnv.getScheduler();
     scheduler.releaseWaiting();

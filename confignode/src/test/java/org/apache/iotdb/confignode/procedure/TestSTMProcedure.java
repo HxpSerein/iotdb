@@ -25,10 +25,14 @@ import org.apache.iotdb.confignode.procedure.util.ProcedureTestUtil;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestSTMProcedure extends TestProcedureBase {
+
+  public static final Logger LOGGER = LoggerFactory.getLogger(TestSTMProcedure.class);
 
   @Test
   public void testSubmitProcedure() {
@@ -37,7 +41,7 @@ public class TestSTMProcedure extends TestProcedureBase {
     ProcedureTestUtil.waitForProcedure(this.procExecutor, procId);
     TestProcEnv env = this.getEnv();
     AtomicInteger acc = env.getAcc();
-    Assert.assertEquals(acc.get(), 10);
+    Assert.assertEquals(10, acc.get());
   }
 
   @Test
@@ -50,9 +54,9 @@ public class TestSTMProcedure extends TestProcedureBase {
     AtomicInteger acc = env.getAcc();
     int success = env.successCount.get();
     int rolledback = env.rolledBackCount.get();
-    System.out.println(acc.get());
-    System.out.println(success);
-    System.out.println(rolledback);
+    LOGGER.info("all count: " + acc.get());
+    LOGGER.info("success count: " + success);
+    LOGGER.info("rolledback count: " + rolledback);
     Assert.assertEquals(1 + success - rolledback, acc.get());
   }
 }

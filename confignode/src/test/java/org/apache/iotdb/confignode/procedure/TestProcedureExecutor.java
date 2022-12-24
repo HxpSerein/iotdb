@@ -73,10 +73,10 @@ public class TestProcedureExecutor extends TestProcedureBase {
     Assert.assertEquals(3, threads1);
 
     ProcedureTestUtil.waitForProcedure(procExecutor, otherProcId);
-    Assert.assertEquals(true, procExecutor.isFinished(otherProcId));
-    Assert.assertEquals(true, procExecutor.isRunning());
-    Assert.assertEquals(false, procExecutor.isFinished(busyProcId1));
-    Assert.assertEquals(false, procExecutor.isFinished(busyProcId2));
+    Assert.assertTrue(procExecutor.isFinished(otherProcId));
+    Assert.assertTrue(procExecutor.isRunning());
+    Assert.assertFalse(procExecutor.isFinished(busyProcId1));
+    Assert.assertFalse(procExecutor.isFinished(busyProcId2));
 
     // terminate the busy procedures
     latch1.release();

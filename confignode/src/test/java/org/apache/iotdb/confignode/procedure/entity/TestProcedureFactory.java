@@ -20,6 +20,7 @@
 package org.apache.iotdb.confignode.procedure.entity;
 
 import org.apache.iotdb.confignode.procedure.Procedure;
+import org.apache.iotdb.confignode.procedure.env.TestProcEnv;
 import org.apache.iotdb.confignode.procedure.store.IProcedureFactory;
 
 import java.io.IOException;
@@ -28,13 +29,13 @@ import java.nio.ByteBuffer;
 public class TestProcedureFactory implements IProcedureFactory {
 
   @Override
-  public Procedure create(ByteBuffer buffer) throws IOException {
+  public Procedure<TestProcEnv> create(ByteBuffer buffer) throws IOException {
     int typeNum = buffer.getInt();
     if (typeNum >= TestProcedureType.values().length) {
       throw new IOException("unrecognized log type " + typeNum);
     }
     TestProcedureType type = TestProcedureType.values()[typeNum];
-    Procedure procedure;
+    Procedure<TestProcEnv> procedure;
     switch (type) {
       case INC_PROCEDURE:
         procedure = new IncProcedure();

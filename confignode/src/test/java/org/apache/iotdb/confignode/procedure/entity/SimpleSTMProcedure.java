@@ -19,17 +19,22 @@
 
 package org.apache.iotdb.confignode.procedure.entity;
 
+import org.apache.iotdb.confignode.procedure.TestSTMProcedure;
 import org.apache.iotdb.confignode.procedure.env.TestProcEnv;
 import org.apache.iotdb.confignode.procedure.exception.ProcedureException;
 import org.apache.iotdb.confignode.procedure.exception.ProcedureSuspendedException;
 import org.apache.iotdb.confignode.procedure.exception.ProcedureYieldException;
 import org.apache.iotdb.confignode.procedure.impl.statemachine.StateMachineProcedure;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleSTMProcedure
     extends StateMachineProcedure<TestProcEnv, SimpleSTMProcedure.TestState> {
+
+  public static final Logger LOGGER = LoggerFactory.getLogger(SimpleSTMProcedure.class);
 
   public int throwAtIndex = -1;
 
@@ -40,8 +45,7 @@ public class SimpleSTMProcedure
   }
 
   @Override
-  protected Flow executeFromState(TestProcEnv testProcEnv, TestState testState)
-      throws ProcedureSuspendedException, ProcedureYieldException, InterruptedException {
+  protected Flow executeFromState(TestProcEnv testProcEnv, TestState testState) {
     AtomicInteger acc = testProcEnv.getAcc();
     try {
       switch (testState) {
@@ -77,8 +81,9 @@ public class SimpleSTMProcedure
   }
 
   @Override
-  protected void rollbackState(TestProcEnv testProcEnv, TestState testState)
-      throws IOException, InterruptedException {}
+  protected void rollbackState(TestProcEnv testProcEnv, TestState testState) {
+    LOGGER.info("Execute rollback in SimpleSTMProcedure, testState: {}", testState);
+  }
 
   @Override
   protected TestState getState(int stateId) {
