@@ -209,11 +209,11 @@ public class WALNode implements IWALNode {
 
   /** Delete outdated .wal files. */
   public void deleteOutdatedFiles() {
-    try {
-      new DeleteOutdatedFileTask().run();
-    } catch (Exception e) {
-      logger.error("Fail to delete wal node-{}'s outdated files.", identifier, e);
-    }
+    //    try {
+    //      new DeleteOutdatedFileTask().run();
+    //    } catch (Exception e) {
+    //      logger.error("Fail to delete wal node-{}'s outdated files.", identifier, e);
+    //    }
   }
 
   private class DeleteOutdatedFileTask implements Runnable {
