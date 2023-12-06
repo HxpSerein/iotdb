@@ -22,6 +22,7 @@ package org.apache.iotdb.db.pipe.event.common.row;
 import org.apache.iotdb.pipe.api.access.Row;
 import org.apache.iotdb.pipe.api.exception.PipeParameterNotValidException;
 import org.apache.iotdb.pipe.api.type.Type;
+import org.apache.iotdb.tsfile.common.conf.TSFileConfig;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.utils.BitMap;
@@ -106,7 +107,7 @@ public class PipeRow implements Row {
   public String getString(int columnIndex) {
     final org.apache.iotdb.tsfile.utils.Binary binary =
         ((org.apache.iotdb.tsfile.utils.Binary[]) valueColumns[columnIndex])[rowIndex];
-    return binary == null ? null : binary.getStringValue();
+    return binary == null ? null : binary.getStringValue(TSFileConfig.STRING_CHARSET);
   }
 
   @Override
@@ -156,6 +157,11 @@ public class PipeRow implements Row {
     }
     throw new PipeParameterNotValidException(
         String.format("column %s not found", columnName.getFullPath()));
+  }
+
+  @Override
+  public String getColumnName(int columnIndex) {
+    return columnNameStringList[columnIndex];
   }
 
   @Override

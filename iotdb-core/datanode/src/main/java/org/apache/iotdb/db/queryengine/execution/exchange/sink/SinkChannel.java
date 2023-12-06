@@ -34,6 +34,7 @@ import org.apache.iotdb.db.utils.SetThreadName;
 import org.apache.iotdb.mpp.rpc.thrift.TEndOfDataBlockEvent;
 import org.apache.iotdb.mpp.rpc.thrift.TFragmentInstanceId;
 import org.apache.iotdb.mpp.rpc.thrift.TNewDataBlockEvent;
+import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.read.common.block.TsBlock;
 import org.apache.iotdb.tsfile.read.common.block.column.TsBlockSerde;
 import org.apache.iotdb.tsfile.utils.Pair;
@@ -59,7 +60,6 @@ import static org.apache.iotdb.db.queryengine.common.FragmentInstanceId.createFu
 import static org.apache.iotdb.db.queryengine.metric.DataExchangeCostMetricSet.SEND_NEW_DATA_BLOCK_EVENT_TASK_CALLER;
 import static org.apache.iotdb.db.queryengine.metric.DataExchangeCostMetricSet.SINK_HANDLE_SEND_TSBLOCK_REMOTE;
 import static org.apache.iotdb.db.queryengine.metric.DataExchangeCountMetricSet.SEND_NEW_DATA_BLOCK_NUM_CALLER;
-import static org.apache.iotdb.tsfile.read.common.block.TsBlockBuilderStatus.DEFAULT_MAX_TSBLOCK_SIZE_IN_BYTES;
 
 public class SinkChannel implements ISinkChannel {
 
@@ -82,6 +82,9 @@ public class SinkChannel implements ISinkChannel {
   private final SinkListener sinkListener;
   private final String threadName;
   private long retryIntervalInMs;
+
+  private static final int DEFAULT_MAX_TSBLOCK_SIZE_IN_BYTES =
+      TSFileDescriptor.getInstance().getConfig().getMaxTsBlockSizeInBytes();
 
   // Use LinkedHashMap to meet 2 needs,
   //   1. Predictable iteration order so that removing buffered TsBlocks can be efficient.
@@ -132,17 +135,20 @@ public class SinkChannel implements ISinkChannel {
       SinkListener sinkListener,
       IClientManager<TEndPoint, SyncDataNodeMPPDataExchangeServiceClient>
           mppDataExchangeServiceClientManager) {
-    this.remoteEndpoint = Validate.notNull(remoteEndpoint);
-    this.remoteFragmentInstanceId = Validate.notNull(remoteFragmentInstanceId);
-    this.remotePlanNodeId = Validate.notNull(remotePlanNodeId);
-    this.localPlanNodeId = Validate.notNull(localPlanNodeId);
-    this.localFragmentInstanceId = Validate.notNull(localFragmentInstanceId);
+    this.remoteEndpoint = Validate.notNull(remoteEndpoint, "remoteEndPoint can not be null.");
+    this.remoteFragmentInstanceId =
+        Validate.notNull(remoteFragmentInstanceId, "remoteFragmentInstanceId can not be null.");
+    this.remotePlanNodeId = Validate.notNull(remotePlanNodeId, "remotePlanNodeId can not be null.");
+    this.localPlanNodeId = Validate.notNull(localPlanNodeId, "localPlanNodeId can not be null.");
+    this.localFragmentInstanceId =
+        Validate.notNull(localFragmentInstanceId, "localFragmentInstanceId can not be null.");
     this.fullFragmentInstanceId =
         FragmentInstanceId.createFragmentInstanceIdFromTFragmentInstanceId(localFragmentInstanceId);
-    this.localMemoryManager = Validate.notNull(localMemoryManager);
-    this.executorService = Validate.notNull(executorService);
-    this.serde = Validate.notNull(serde);
-    this.sinkListener = Validate.notNull(sinkListener);
+    this.localMemoryManager =
+        Validate.notNull(localMemoryManager, "localMemoryManager can not be null.");
+    this.executorService = Validate.notNull(executorService, "executorService can not be null.");
+    this.serde = Validate.notNull(serde, "serde can not be null.");
+    this.sinkListener = Validate.notNull(sinkListener, "sinkListener can not be null.");
     this.mppDataExchangeServiceClientManager = mppDataExchangeServiceClientManager;
     this.retryIntervalInMs = DEFAULT_RETRY_INTERVAL_IN_MS;
     this.threadName =
@@ -218,7 +224,9 @@ public class SinkChannel implements ISinkChannel {
 
   @Override
   public synchronized void setNoMoreTsBlocks() {
-    LOGGER.debug("[StartSetNoMoreTsBlocks]");
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("[StartSetNoMoreTsBlocks]");
+    }
     if (aborted || closed) {
       return;
     }
@@ -227,7 +235,9 @@ public class SinkChannel implements ISinkChannel {
 
   @Override
   public synchronized void abort() {
-    LOGGER.debug("[StartAbortSinkChannel]");
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("[StartAbortSinkChannel]");
+    }
     if (aborted || closed) {
       return;
     }
@@ -247,12 +257,16 @@ public class SinkChannel implements ISinkChannel {
     }
     sinkListener.onAborted(this);
     aborted = true;
-    LOGGER.debug("[EndAbortSinkChannel]");
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("[EndAbortSinkChannel]");
+    }
   }
 
   @Override
   public synchronized void close() {
-    LOGGER.debug("[StartCloseSinkChannel]");
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("[StartCloseSinkChannel]");
+    }
     if (closed || aborted) {
       return;
     }
@@ -272,7 +286,9 @@ public class SinkChannel implements ISinkChannel {
     }
     invokeOnFinished();
     closed = true;
-    LOGGER.debug("[EndCloseSinkChannel]");
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("[EndCloseSinkChannel]");
+    }
   }
 
   private void invokeOnFinished() {
@@ -307,10 +323,12 @@ public class SinkChannel implements ISinkChannel {
 
   public synchronized ByteBuffer getSerializedTsBlock(int sequenceId) throws IOException {
     if (aborted || closed) {
-      LOGGER.debug(
-          "SinkChannel still receive getting TsBlock request after being aborted={} or closed={}",
-          aborted,
-          closed);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "SinkChannel still receive getting TsBlock request after being aborted={} or closed={}",
+            aborted,
+            closed);
+      }
       throw new GetTsBlockFromClosedOrAbortedChannelException("SinkChannel is aborted or closed. ");
     }
     Pair<TsBlock, Long> pair = sequenceIdToTsBlock.get(sequenceId);
@@ -344,7 +362,9 @@ public class SinkChannel implements ISinkChannel {
         freedBytes += entry.getValue().right;
         bufferRetainedSizeInBytes -= entry.getValue().right;
         iterator.remove();
-        LOGGER.debug("[ACKTsBlock] {}.", entry.getKey());
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("[ACKTsBlock] {}.", entry.getKey());
+        }
       }
 
       // there may exist duplicate ack message in network caused by caller retrying, if so duplicate
@@ -454,12 +474,14 @@ public class SinkChannel implements ISinkChannel {
     @Override
     public void run() {
       try (SetThreadName sinkChannelName = new SetThreadName(threadName)) {
-        LOGGER.debug(
-            "[NotifyNewTsBlock] [{}, {}) to {}.{}",
-            startSequenceId,
-            startSequenceId + blockSizes.size(),
-            remoteFragmentInstanceId,
-            remotePlanNodeId);
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug(
+              "[NotifyNewTsBlock] [{}, {}) to {}.{}",
+              startSequenceId,
+              startSequenceId + blockSizes.size(),
+              remoteFragmentInstanceId,
+              remotePlanNodeId);
+        }
         int attempt = 0;
         TNewDataBlockEvent newDataBlockEvent =
             new TNewDataBlockEvent(
@@ -506,7 +528,9 @@ public class SinkChannel implements ISinkChannel {
     @Override
     public void run() {
       try (SetThreadName sinkChannelName = new SetThreadName(threadName)) {
-        LOGGER.debug("[NotifyNoMoreTsBlock]");
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("[NotifyNoMoreTsBlock]");
+        }
         int attempt = 0;
         TEndOfDataBlockEvent endOfDataBlockEvent =
             new TEndOfDataBlockEvent(

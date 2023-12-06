@@ -41,9 +41,7 @@ public class CompareLessThanTransformer extends CompareBinaryTransformer {
   @Override
   protected Evaluator constructTextEvaluator() {
     return () ->
-        TransformUtils.compare(
-                leftPointReader.currentBinary().getStringValue(),
-                rightPointReader.currentBinary().getStringValue())
+        TransformUtils.compare(leftPointReader.currentBinary(), rightPointReader.currentBinary())
             < 0;
   }
 }

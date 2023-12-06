@@ -52,24 +52,12 @@ public class BetweenColumnTransformer extends CompareTernaryColumnTransformer {
         if (firstColumnTransformer.getType() instanceof BinaryType) {
           flag =
               ((TransformUtils.compare(
-                              firstColumnTransformer
-                                  .getType()
-                                  .getBinary(firstColumn, i)
-                                  .getStringValue(),
-                              secondColumnTransformer
-                                  .getType()
-                                  .getBinary(secondColumn, i)
-                                  .getStringValue())
+                              firstColumnTransformer.getType().getBinary(firstColumn, i),
+                              secondColumnTransformer.getType().getBinary(secondColumn, i))
                           >= 0)
                       && (TransformUtils.compare(
-                              firstColumnTransformer
-                                  .getType()
-                                  .getBinary(firstColumn, i)
-                                  .getStringValue(),
-                              thirdColumnTransformer
-                                  .getType()
-                                  .getBinary(thirdColumn, i)
-                                  .getStringValue())
+                              firstColumnTransformer.getType().getBinary(firstColumn, i),
+                              thirdColumnTransformer.getType().getBinary(thirdColumn, i))
                           <= 0))
                   ^ isNotBetween;
         } else {

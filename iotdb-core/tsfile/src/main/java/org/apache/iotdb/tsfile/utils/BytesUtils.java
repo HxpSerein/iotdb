@@ -679,6 +679,16 @@ public class BytesUtils {
   }
 
   /**
+   * Return the deepCopy of the given byte array.
+   *
+   * @param src input byte array
+   * @return byte array
+   */
+  public static byte[] deepCopy(byte[] src) {
+    return subBytes(src, 0, src.length);
+  }
+
+  /**
    * cut out specified length byte array from parameter start from input byte array src and return.
    *
    * @param src input byte array
@@ -916,5 +926,9 @@ public class BytesUtils {
     s1 <<= 8;
     short s = (short) (s0 | s1);
     return s;
+  }
+
+  public static Binary valueOf(String value) {
+    return new Binary(stringToBytes(value));
   }
 }
