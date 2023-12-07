@@ -39,55 +39,63 @@ public class WALConsistentTest {
   protected static final IoTDBConfig config = IoTDBDescriptor.getInstance().getConfig();
   protected static final boolean preIsClusterMode = config.isClusterMode();
 
-  protected static final String logDirectory_73 =
-      "/home/serein/inconsistent/data/73/root.test.g_0-3";
+  protected static final String logDirectory_72 =
+      "/home/serein/inconsistent/data/72";
   protected static final String logDirectory_74 =
-      "/home/serein/inconsistent/data/74/root.test.g_0-3";
+      "/home/serein/inconsistent/data/74";
   protected static final String logDirectory_75 =
-      "/home/serein/inconsistent/data/75/root.test.g_0-3";
+      "/home/serein/inconsistent/data/75";
 
-  protected static final String logDirectory_73_167 = "/home/serein/inconsistent/data/73/167";
-  protected static final String logDirectory_74_167 = "/home/serein/inconsistent/data/74/167";
-  protected static final String logDirectory_75_167 = "/home/serein/inconsistent/data/75/167";
+  protected static final String logDirectory_72_353 = "/home/serein/inconsistent/data/72/353";
+  protected static final String logDirectory_74_353 = "/home/serein/inconsistent/data/74/353";
+  protected static final String logDirectory_75_353 = "/home/serein/inconsistent/data/75/353";
 
-  protected IWALBuffer walBuffer_73;
+  protected IWALBuffer walBuffer_72;
   protected IWALBuffer walBuffer_74;
   protected IWALBuffer walBuffer_75;
 
   @Before
   public void setUp() throws Exception {
-    walBuffer_73 = new WALBuffer("73", logDirectory_73_167);
-    walBuffer_74 = new WALBuffer("74", logDirectory_74_167);
-    walBuffer_75 = new WALBuffer("75", logDirectory_75_167);
+    walBuffer_72 = new WALBuffer("72", logDirectory_72_353);
+    walBuffer_74 = new WALBuffer("74", logDirectory_74_353);
+    walBuffer_75 = new WALBuffer("75", logDirectory_75_353);
     config.setClusterMode(true);
   }
 
   @After
   public void tearDown() throws Exception {
-    walBuffer_73.close();
+    walBuffer_72.close();
     walBuffer_74.close();
     walBuffer_75.close();
     config.setClusterMode(preIsClusterMode);
   }
+  static class Pair {
+    long[] times;
+    long searchIndex;
+    Pair(long[] times, long searchIndex) {
+      this.times = times;
+      this.searchIndex = searchIndex;
+    }
+  }
 
   @Test
   public void readWALFile() throws Exception {
-    File[] walFiles_73_167 = WALFileUtils.listAllWALFiles(new File(logDirectory_73_167));
-    int rowCount_73 = getRowCount(walFiles_73_167);
-    System.out.println(rowCount_73);
+    File[] walFiles_72_353 = WALFileUtils.listAllWALFiles(new File(logDirectory_72_353));
+    int rowCount_72 = getRowCount(walFiles_72_353);
+    System.out.println(rowCount_72);
     //    Set<InsertTabletNode> actualInsertTabletNodes_73_167 =
     // getInsertTabletNodes(walFiles_73_167);
     //    System.out.println(actualInsertTabletNodes_73_167.size());
 
-    File[] walFiles_74_167 = WALFileUtils.listAllWALFiles(new File(logDirectory_74_167));
-    int rowCount_74 = getRowCount(walFiles_74_167);
+    File[] walFiles_74_353 = WALFileUtils.listAllWALFiles(new File(logDirectory_74_353));
+    int rowCount_74 = getRowCount(walFiles_74_353);
     System.out.println(rowCount_74);
     //    Set<InsertTabletNode> actualInsertTabletNodes_74_167 =
     // getInsertTabletNodes(walFiles_74_167);
     //    System.out.println(actualInsertTabletNodes_74_167.size());
 
-    File[] walFiles_75_167 = WALFileUtils.listAllWALFiles(new File(logDirectory_75_167));
-    int rowCount_75 = getRowCount(walFiles_75_167);
+    File[] walFiles_75_353 = WALFileUtils.listAllWALFiles(new File(logDirectory_75_353));
+    int rowCount_75 = getRowCount(walFiles_75_353);
     System.out.println(rowCount_75);
     //    Set<InsertTabletNode> actualInsertTabletNodes_75_167 =
     // getInsertTabletNodes(walFiles_75_167);
@@ -102,13 +110,74 @@ public class WALConsistentTest {
         while (walReader.hasNext()) {
           InsertTabletNode insertTabletNode = (InsertTabletNode) walReader.next().getValue();
           String path = insertTabletNode.getDevicePath().getNodes()[3];
-          if (path.equals("d_167")) {
+          if (path.equals("d_353")) {
             rowCount += insertTabletNode.getRowCount();
           }
         }
       }
     }
     return rowCount;
+  }
+
+  @Test
+  public void cmpSearchIndex() throws Exception {
+    File[] walFiles_72_353 = WALFileUtils.listAllWALFiles(new File(logDirectory_72_353));
+    Set<Pair> searchIndex_72 = getSearchIndex(walFiles_72_353);
+
+    File[] walFiles_74_353 = WALFileUtils.listAllWALFiles(new File(logDirectory_74_353));
+    Set<Pair> searchIndex_74 = getSearchIndex(walFiles_74_353);
+
+    long disappearedIndex = 0;
+
+    for (Pair pair_72 : searchIndex_72) {
+      long [] times_72 = pair_72.times;
+      boolean check = false;
+      for (Pair pair_74 : searchIndex_74) {
+        boolean flag = true;
+        long [] times_74 = pair_74.times;
+        if (times_74.length != times_72.length) {
+          continue;
+        }
+        for (int i = 0; i < times_72.length; i ++) {
+          if(times_72[i] != times_74[i]) {
+            flag = false;
+            break;
+          }
+        }
+        if(flag) {
+          check = true;
+          break;
+        }
+      }
+      if(!check) {
+        disappearedIndex = pair_72.searchIndex;
+        System.out.println(disappearedIndex);
+      }
+    }
+
+    for (Pair pair_72 : searchIndex_72) {
+      if (pair_72.searchIndex == disappearedIndex) {
+        System.out.println(pair_72.searchIndex);
+      }
+    }
+  }
+
+  private static Set<Pair> getSearchIndex(File[] walFiles) throws IOException {
+    Arrays.sort(walFiles, new FileComparator());
+    Set<Pair> insertTabletNodeSet = new HashSet<>();
+    for (File walFile : walFiles) {
+      try (WALReader walReader = new WALReader(walFile)) {
+        while (walReader.hasNext()) {
+          InsertTabletNode insertTabletNode = (InsertTabletNode) walReader.next().getValue();
+          String path = insertTabletNode.getDevicePath().getNodes()[3];
+          if (path.equals("d_353")) {
+            Pair pair = new Pair(insertTabletNode.getTimes(), insertTabletNode.getSearchIndex());
+            insertTabletNodeSet.add(pair);
+          }
+        }
+      }
+    }
+    return insertTabletNodeSet;
   }
 
   private static Set<InsertTabletNode> getInsertTabletNodes(File[] walFiles) throws IOException {
@@ -119,7 +188,7 @@ public class WALConsistentTest {
         while (walReader.hasNext()) {
           InsertTabletNode insertTabletNode = (InsertTabletNode) walReader.next().getValue();
           String path = insertTabletNode.getDevicePath().getNodes()[3];
-          if (path.equals("d_167")) {
+          if (path.equals("d_353")) {
             insertTabletNodeSet.add(insertTabletNode);
           }
         }
@@ -129,10 +198,10 @@ public class WALConsistentTest {
   }
 
   @Test
-  public void processWALFileFrom73() throws Exception {
-    File[] walFiles_73 = WALFileUtils.listAllWALFiles(new File(logDirectory_73));
-    processInsertTabletNodes(walFiles_73, walBuffer_73);
-    while (!walBuffer_73.isAllWALEntriesConsumed()) {
+  public void processWALFileFrom72() throws Exception {
+    File[] walFiles_72 = WALFileUtils.listAllWALFiles(new File(logDirectory_72));
+    processInsertTabletNodes(walFiles_72, walBuffer_72);
+    while (!walBuffer_72.isAllWALEntriesConsumed()) {
       Thread.sleep(1_000);
     }
   }
@@ -163,7 +232,7 @@ public class WALConsistentTest {
         while (walReader.hasNext()) {
           InsertTabletNode insertTabletNode = (InsertTabletNode) walReader.next().getValue();
           String path = insertTabletNode.getDevicePath().getNodes()[3];
-          if (path.equals("d_167")) {
+          if (path.equals("d_353")) {
             WALEntry walEntry = new WALInfoEntry(1, insertTabletNode);
             walBuffer.write(walEntry);
           }
