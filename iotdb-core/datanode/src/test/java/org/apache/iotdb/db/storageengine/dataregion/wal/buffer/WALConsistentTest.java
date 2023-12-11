@@ -39,16 +39,13 @@ public class WALConsistentTest {
   protected static final IoTDBConfig config = IoTDBDescriptor.getInstance().getConfig();
   protected static final boolean preIsClusterMode = config.isClusterMode();
 
-  protected static final String logDirectory_72 =
-      "/home/serein/inconsistent/data/72";
-  protected static final String logDirectory_74 =
-      "/home/serein/inconsistent/data/74";
-  protected static final String logDirectory_75 =
-      "/home/serein/inconsistent/data/75";
+  protected static final String logDirectory_72 = "D:/dev/data/72";
+  protected static final String logDirectory_74 = "D:/dev/data/74";
+  protected static final String logDirectory_75 = "D:/dev/data/75";
 
-  protected static final String logDirectory_72_353 = "/home/serein/inconsistent/data/72/353";
-  protected static final String logDirectory_74_353 = "/home/serein/inconsistent/data/74/353";
-  protected static final String logDirectory_75_353 = "/home/serein/inconsistent/data/75/353";
+  protected static final String logDirectory_72_353 = "D:/dev/data/72/353";
+  protected static final String logDirectory_74_353 = "D:/dev/data/74/353";
+  protected static final String logDirectory_75_353 = "D:/dev/data/75/353";
 
   protected IWALBuffer walBuffer_72;
   protected IWALBuffer walBuffer_74;
@@ -69,9 +66,11 @@ public class WALConsistentTest {
     walBuffer_75.close();
     config.setClusterMode(preIsClusterMode);
   }
+
   static class Pair {
     long[] times;
     long searchIndex;
+
     Pair(long[] times, long searchIndex) {
       this.times = times;
       this.searchIndex = searchIndex;
@@ -110,7 +109,7 @@ public class WALConsistentTest {
         while (walReader.hasNext()) {
           InsertTabletNode insertTabletNode = (InsertTabletNode) walReader.next().getValue();
           String path = insertTabletNode.getDevicePath().getNodes()[3];
-          if (path.equals("d_353")) {
+          if (path.equals("d_530")) {
             rowCount += insertTabletNode.getRowCount();
           }
         }
@@ -130,26 +129,26 @@ public class WALConsistentTest {
     long disappearedIndex = 0;
 
     for (Pair pair_72 : searchIndex_72) {
-      long [] times_72 = pair_72.times;
+      long[] times_72 = pair_72.times;
       boolean check = false;
       for (Pair pair_74 : searchIndex_74) {
         boolean flag = true;
-        long [] times_74 = pair_74.times;
+        long[] times_74 = pair_74.times;
         if (times_74.length != times_72.length) {
           continue;
         }
-        for (int i = 0; i < times_72.length; i ++) {
-          if(times_72[i] != times_74[i]) {
+        for (int i = 0; i < times_72.length; i++) {
+          if (times_72[i] != times_74[i]) {
             flag = false;
             break;
           }
         }
-        if(flag) {
+        if (flag) {
           check = true;
           break;
         }
       }
-      if(!check) {
+      if (!check) {
         disappearedIndex = pair_72.searchIndex;
         System.out.println(disappearedIndex);
       }
@@ -170,7 +169,7 @@ public class WALConsistentTest {
         while (walReader.hasNext()) {
           InsertTabletNode insertTabletNode = (InsertTabletNode) walReader.next().getValue();
           String path = insertTabletNode.getDevicePath().getNodes()[3];
-          if (path.equals("d_353")) {
+          if (path.equals("d_530")) {
             Pair pair = new Pair(insertTabletNode.getTimes(), insertTabletNode.getSearchIndex());
             insertTabletNodeSet.add(pair);
           }
@@ -188,7 +187,7 @@ public class WALConsistentTest {
         while (walReader.hasNext()) {
           InsertTabletNode insertTabletNode = (InsertTabletNode) walReader.next().getValue();
           String path = insertTabletNode.getDevicePath().getNodes()[3];
-          if (path.equals("d_353")) {
+          if (path.equals("d_530")) {
             insertTabletNodeSet.add(insertTabletNode);
           }
         }

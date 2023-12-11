@@ -978,6 +978,8 @@ public class DataRegion implements IDataRegionForQuery {
           lastFlushTimeMap.getFlushedTime(
               beforeTimePartition, insertTabletNode.getDevicePath().getFullPath());
 
+      int insertCnt = 0;
+
       // if is sequence
       boolean isSequence = false;
       while (loc < insertTabletNode.getRowCount()) {
@@ -991,6 +993,9 @@ public class DataRegion implements IDataRegionForQuery {
                 insertTabletToTsFileProcessor(
                         insertTabletNode, before, loc, false, results, beforeTimePartition)
                     && noFailure;
+            insertCnt += 1;
+            logger.debug(
+                "insertTabletToTsFileProcessor, insertCnt:{}, noFailure:{}", insertCnt, noFailure);
           }
           before = loc;
           isSequence = true;
@@ -1006,6 +1011,9 @@ public class DataRegion implements IDataRegionForQuery {
             insertTabletToTsFileProcessor(
                     insertTabletNode, before, loc, isSequence, results, beforeTimePartition)
                 && noFailure;
+        insertCnt += 1;
+        logger.debug(
+            "insertTabletToTsFileProcessor, insertCnt:{}, noFailure:{}", insertCnt, noFailure);
       }
       long globalLatestFlushedTime =
           lastFlushTimeMap.getGlobalFlushedTime(insertTabletNode.getDevicePath().getFullPath());
